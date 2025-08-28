@@ -27,12 +27,11 @@ class GoogleAuthController extends Controller
         $user = User::updateOrCreate(
             ['email' => $googleUser->email], 
             [
-                'username' => explode('@', $googleUser->getEmail())[0],
                 'name' => $googleUser->getName(),
                 'provider'    => 'google',
                 'provider_id' => $googleUser->getId(),
-                // 'password' => bcrypt(Str::random(16)), 
                 'role' => 'guest',
+                'is_manual'=>'1',
             ]
         );
 
