@@ -7,6 +7,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ManualPasswordResetController;
 use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -30,6 +31,9 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('change-password',[PasswordChangeController::class,'Changepassword']);
     Route::post('/role-request', [RoleController::class, 'requestrole']);
+
+
+    Route::apiResource('posts', PostController::class);
     
 
 
