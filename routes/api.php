@@ -34,6 +34,9 @@ Route::middleware(['auth:api'])->group(function () {
 
 
     Route::apiResource('posts', PostController::class);
+    Route::get('categories',[PostController::class,'category']);
+    Route::get('/tags',[PostController::class,'tags']);
+    Route::delete('/media/{id}',[PostController::class,'deleteMedia']);
     
 
 

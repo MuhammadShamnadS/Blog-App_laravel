@@ -2,144 +2,212 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Post;
 use App\Models\Category;
+use App\Models\Post;
+use App\Models\Media;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
-    // List all posts of logged-in author
+
+    
+    // List posts
     public function index()
     {
-        $user = Auth::user();
-
-        if ($user->role !== 'author') {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $posts = Post::with(['category', 'tags'])
-            ->where('author_id', $user->id)
+        $posts = Post::with(['category', 'tags', 'media', 'author'])->where('author_id', auth()->id())
             ->latest()
             ->get();
 
         return response()->json($posts);
     }
 
-    // Create a new post
+    // Show single post
+    public function show($id)
+    {
+        $post = Post::with(['category','tags', 'media', 'author'])->where('author_id',auth()->id())->findOrFail($id);
+        return response()->json($post);
+    }
+
+    // Create post (author only, default draft)
     public function store(Request $request)
     {
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'content'     => 'required|string',
+            'category'    => 'required|string|max:100',
+            'tags'        => 'nullable|array',
+            'tags.*'      => 'string|max:50',
+            'media.*'     => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mp3,pdf,docx|max:20480',
+        ]);
+
         $user = Auth::user();
 
         if ($user->role !== 'author') {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            return response()->json(['error' => 'Only authors can create posts.'], 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'title'       => 'required|string|max:255',
-            'content'     => 'required|string',
-            'status'      => 'required|in:draft,published,archived',
-            'category'    => 'required|string',
-            'tags'        => 'nullable|array',
-            'tags.*'      => 'string'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // Ensure category exists (create if not)
         $category = Category::firstOrCreate(['name' => $request->category]);
 
-        // Create post
         $post = Post::create([
             'title'       => $request->title,
             'content'     => $request->content,
-            'author_id'   => $user->id,
-            'status'      => $request->status,
             'category_id' => $category->id,
+            'status'      => 'draft',
+            'author_id'     => $user->id,
         ]);
 
-        // Handle tags
-        if ($request->has('tags')) {
-            $tagIds = [];
-            foreach ($request->tags as $tagName) {
-                $tag = Tag::firstOrCreate(['name' => $tagName]);
-                $tagIds[] = $tag->id;
+        // Attach tags if provided
+    if ($request->has('tags')) 
+        { 
+            $tagIds = []; 
+            foreach ($request->tags as $tagName) 
+                { 
+                    $tag = Tag::firstOrCreate(['name' => $tagName]); 
+                    $tagIds[] = $tag->id; 
+                } 
+                $post->tags()->sync($tagIds); 
+        }
+
+        // Save media files
+        if ($request->hasFile('media')) {
+            foreach ($request->file('media') as $file) {
+                $path = $file->store('posts', 'public');
+
+                $type = $this->getMediaType($file->getClientMimeType());
+
+                Media::create([
+                    'post_id' => $post->id,
+                    'url'     => $path,
+                    'type'    => $type,
+                ]);
             }
-            $post->tags()->sync($tagIds);
         }
 
-        return response()->json($post, 201);
+        return response()->json(['message' => 'Post created successfully', 'post' => $post->load('media', 'tags', 'category')]);
     }
 
-    // Show single post
-    public function show(Post $post)
+    // Update post
+    public function update(Request $request, $id)
     {
-        $user = Auth::user();
+        $post = Post::findOrFail($id);
 
-        if ($user->role !== 'author' || $post->author_id !== $user->id) {
+        if (Auth::id() !== $post->author_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        return response()->json($post->load(['category', 'tags']));
-    }
-
-    // Update a post
-    public function update(Request $request, Post $post)
-    {
-        $user = Auth::user();
-
-        if ($user->role !== 'author' || $post->author_id !== $user->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'title'       => 'sometimes|required|string|max:255',
-            'content'     => 'sometimes|required|string',
-            'status'      => 'sometimes|required|in:draft,published,archived',
-            'category'    => 'sometimes|required|string',
+        $request->validate([
+            'title'       => 'required|string|max:255',
+            'content'     => 'required|string',
+            'category'    => 'required|string|max:100',
             'tags'        => 'nullable|array',
-            'tags.*'      => 'string'
+            'tags.*'      => 'string|max:50',
+            'status'      => 'required|in:draft,submitted',
+            'media.*'     => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mp3,pdf,docx|max:20480',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        $category = Category::firstOrCreate(['name' => $request->category]);
+
+        if($post->status=="submitted")
+        {
+            return response()->json(['error' , 'You cannot do any actions on a submitted post , wait until editors responnse']);
         }
 
-        if ($request->has('category')) {
-            $category = Category::firstOrCreate(['name' => $request->category]);
-            $post->category_id = $category->id;
+
+        $post->update([
+            'title'       => $request->title,
+            'content'     => $request->content,
+            'category_id' => $category->id,
+            'status' =>$request->status,
+        ]);
+        
+    if ($request->has('tags')) 
+        { 
+            $tagIds = []; 
+            foreach ($request->tags as $tagName) 
+                { 
+                    $tag = Tag::firstOrCreate(['name' => $tagName]); 
+                    $tagIds[] = $tag->id; 
+                } 
+                $post->tags()->sync($tagIds); 
         }
 
-        $post->update($request->only(['title', 'content', 'status']));
+        if ($request->hasFile('media')) {
+            foreach ($request->file('media') as $file) {
+                $path = $file->store('posts', 'public');
 
-        if ($request->has('tags')) {
-            $tagIds = [];
-            foreach ($request->tags as $tagName) {
-                $tag = Tag::firstOrCreate(['name' => $tagName]);
-                $tagIds[] = $tag->id;
+                $type = $this->getMediaType($file->getClientMimeType());
+
+                Media::create([
+                    'post_id' => $post->id,
+                    'url'     => $path,
+                    'type'    => $type,
+                ]);
             }
-            $post->tags()->sync($tagIds);
         }
 
-        return response()->json($post->load(['category', 'tags']));
+        return response()->json(['message' => 'Post updated successfully', 'post' => $post->load('media', 'tags', 'category')]);
     }
 
-    // Delete a post
-    public function destroy(Post $post)
+    // Delete post
+    public function destroy($id)
     {
-        $user = Auth::user();
+        $post = Post::findOrFail($id);
 
-        if ($user->role !== 'author' || $post->author_id !== $user->id) {
+        if (Auth::id() !== $post->author_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $post->tags()->detach();
+        // Delete media files from storage
+        foreach ($post->media as $media) {
+            Storage::disk('public')->delete($media->url);
+            $media->delete();
+        }
+
         $post->delete();
 
         return response()->json(['message' => 'Post deleted successfully']);
     }
+
+    private function getMediaType($mime)
+    {
+        if (str_contains($mime, 'image')) return 'image';
+        if (str_contains($mime, 'video')) return 'video';
+        if (str_contains($mime, 'audio')) return 'audio';
+        return 'file';
+    }
+    public function category()
+    {
+        $category=Category::all();
+        return response()->json($category);
+    }
+
+    public function tags()
+    {
+        $tags=Tag::all();
+        return response()->json($tags);
+    }
+
+  public function deleteMedia($id)
+{
+    $userId = auth()->id();
+    $media = Media::findOrFail($id);
+    $post = Post::findOrFail($media->post_id);
+
+    if ($userId !== $post->author_id) {
+        return response()->json(['error' => 'You are not allowed to delete this'], 403);
+    }
+
+    // Delete file from storage
+    Storage::disk('public')->delete($media->url);
+
+    // Delete media record
+    $media->delete();
+
+    return response()->json(['message' => 'Media deleted successfully']);
+}
+
 }

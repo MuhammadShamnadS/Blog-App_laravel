@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\RoleRequest;
+use App\Models\User;
 
 class AdminRoleController extends Controller
 {
@@ -47,6 +49,5 @@ public function viewrolerequest()
     $requests = RoleRequest::with('user')->get();
     return response()->json($requests);
 }
-
 
 }
