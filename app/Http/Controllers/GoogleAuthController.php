@@ -26,7 +26,7 @@ class GoogleAuthController extends Controller
 
  
         // Find or create user
-        $user = User::Create(
+        $user = User::firstOrCreate(
 
 
             ['email' => $googleUser->email], 
