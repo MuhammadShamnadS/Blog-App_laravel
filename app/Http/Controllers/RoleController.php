@@ -10,10 +10,11 @@ class RoleController extends Controller
 {
     public function requestrole(Request $request)
     {
-        // Validate input
-        $validator = Validator::make($request->all(), [
-            'requested_role' => 'required|in:author,editor',
-        ]);
+     $rules = [
+        'requested_role' => 'required|in:author,editor',
+    ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
@@ -29,6 +30,10 @@ class RoleController extends Controller
         if ($user->role === $request->requested_role) {
             return response()->json(['error' => "You are already an {$user->role}"], 422);
         }
+
+        if ($user->role !== "guest") {
+            return response()->json(['error' => "You are already assigned as {$user->role} by admin"],422);
+    }
         
         // Create a new request
         $roleRequest = RoleRequest::create([

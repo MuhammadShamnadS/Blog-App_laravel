@@ -27,5 +27,10 @@ class Post extends Model
     {
         return $this->hasMany(Media::class);
     }
+
+    public function editorReview() 
+    {
+        return $this->hasOne(EditorReview::class);
+    }
 }
 

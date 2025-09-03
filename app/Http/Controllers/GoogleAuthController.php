@@ -23,8 +23,12 @@ class GoogleAuthController extends Controller
             return redirect("http://localhost:5173/login?error=GoogleAuthFailed");
         }
 
+
+ 
         // Find or create user
-        $user = User::updateOrCreate(
+        $user = User::Create(
+
+
             ['email' => $googleUser->email], 
             [
                 'name' => $googleUser->getName(),
@@ -40,5 +44,6 @@ class GoogleAuthController extends Controller
 
            return redirect("http://localhost:5173/google-success?token=$token");
 
-    } 
+    }
+     
 }

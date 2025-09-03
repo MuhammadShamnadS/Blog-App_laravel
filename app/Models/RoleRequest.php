@@ -8,7 +8,7 @@ class RoleRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'requested_role', 'status'];
+    protected $fillable = ['user_id', 'requested_role', 'status','category_id'];
 
     public function user()
     {

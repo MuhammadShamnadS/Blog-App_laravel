@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Media;
 use App\Models\Tag;
+use App\Models\EditorReview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -16,19 +17,34 @@ class PostController extends Controller
 
     
     // List posts
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with(['category', 'tags', 'media', 'author'])->where('author_id', auth()->id())
-            ->latest()
-            ->get();
+        $userId = auth()->id();
+        $query = Post::with(['category', 'media'])
+            ->where('author_id', $userId);
 
-        return response()->json($posts);
+        // filter by type
+        if ($request->has('filter')) {
+            switch ($request->filter) {
+                case 'approved':
+                    $query->whereIn('status', ['approved']);
+                    break;
+                case 'rejected':
+                    $query->where('status', 'editor_rejected');
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return response()->json($query->get());
     }
+
 
     // Show single post
     public function show($id)
     {
-        $post = Post::with(['category','tags', 'media', 'author'])->where('author_id',auth()->id())->findOrFail($id);
+        $post = Post::with(['category','tags', 'media', 'author','editorReview'])->where('author_id',auth()->id())->findOrFail($id);
         return response()->json($post);
     }
 
@@ -111,7 +127,7 @@ class PostController extends Controller
 
         $category = Category::firstOrCreate(['name' => $request->category]);
 
-        if($post->status=="submitted")
+   if (in_array($post->status, ["submitted", "editor_approved","under_review"])) 
         {
             return response()->json(['error' , 'You cannot do any actions on a submitted post , wait until editors responnse']);
         }
@@ -209,5 +225,44 @@ class PostController extends Controller
 
     return response()->json(['message' => 'Media deleted successfully']);
 }
+
+public function resubmitPost($id)
+{
+    $post = Post::findOrFail($id);
+
+    // only allow resubmit if post is draft or rejected
+    if ($post->status !== 'editor_rejected') {
+        return response()->json(['message' => 'This post cannot be resubmitted.'], 400);
+    }
+      
+
+    $review = EditorReview::where('post_id', $post->id)
+        ->latest()
+        ->first();
+
+        if ($review && $review->editor_id) {
+    
+            $post->status = 'under_review';
+            $post->save();
+
+            $review->status = 'pending';
+            $review->feedback=null;
+            $review->save();
+        return response()->json([
+            'message' => 'Post resubmitted to the same editor.',
+            'post' => $post->load('editorReview', 'author', 'category', 'tags', 'media')
+        ]);
+    }
+
+    // if no review exists, fallback to admin for assignment
+    $post->status = 'submitted';
+    $post->save();
+
+    return response()->json([
+        'message' => 'Post resubmitted for admin assignment.',
+        'post' => $post->load('author', 'category', 'tags', 'media')
+    ]);
+}
+
 
 }
