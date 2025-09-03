@@ -39,6 +39,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('posts/{id}/schedule' ,[AdminPostController::class,'schedulePost']);
     Route::get('admin/posts/{id}/' ,[AdminPostController::class,'show']);
     Route::get('/admin/posts', [AdminPostController::class, 'index']);
+    Route::post('/{id}/publish', [AdminPostController::class, 'publish']);
+    Route::patch('/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
     
 });
 

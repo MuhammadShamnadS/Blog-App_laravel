@@ -134,12 +134,56 @@ public function show($id)
         return response()->json($post);
     }
 
-    public function index()
+public function index()
     {
         $post=Post::with(['category','tags', 'media', 'author','editorReview'])->get();
 
         return response()->json($post);
     }
+
+public function toggleFeatured(Request $request, $id)
+    {
+        $post = Post::findOrFail($id);
+
+        // Only allow editor-approved or published posts to be featured
+        if (!in_array($post->status, ['editor_approved', 'published'])) {
+            return response()->json([
+                'message' => 'Only editor-approved or published posts can be featured.'
+            ], 400);
+        }
+
+        $request->validate([
+            'featured' => 'required|boolean',
+        ]);
+
+        $post->featured = $request->featured;
+        $post->save();
+
+        return response()->json([
+            'message' => $post->featured ? 'Post marked as featured.' : 'Post unfeatured.',
+            'post' => $post
+        ]);
+    }
+
+public function publish($id)
+{
+    $post = Post::findOrFail($id);
+
+    if (!in_array($post->status, ['editor_approved', 'scheduled'])) {
+        return response()->json(['message' => 'Only approved or scheduled posts can be published.'], 400);
+    }
+
+    $post->status = 'published';
+    $post->schedule_at = null; 
+    $post->save();
+
+    return response()->json([
+        'message' => 'Post published successfully.',
+        'post' => $post
+    ]);
+}
+
+
 
 
 }

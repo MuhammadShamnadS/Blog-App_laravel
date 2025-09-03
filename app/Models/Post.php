@@ -7,6 +7,9 @@ class Post extends Model
     protected $fillable = [
         'title', 'content', 'author_id', 'status', 'schedule_at', 'category_id'
     ];
+    protected $casts = [
+        'featured' => 'boolean',
+    ];
 
     public function author()
     {
