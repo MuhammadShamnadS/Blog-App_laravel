@@ -4,6 +4,7 @@ use App\Http\Controllers\EditorPostController;
 use App\Http\Controllers\AdminPostController;
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ManualPasswordResetController;
@@ -23,6 +24,7 @@ Route::post('reset-password',[ManualPasswordResetController::class,'resetPasswor
 
 
 Route::middleware(['auth:api'])->group(function () {
+    Route::get('/users',[RegisterController::class,'users']);
     Route::post('/role-decision/{id}', [AdminRoleController::class, 'decision']);
     Route::get('/pending-requests',[AdminRoleController::class,'viewrolerequest']);
     Route::get('/requeststatus',[RoleController::class,'viewstatus']);
@@ -39,8 +41,13 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('posts/{id}/schedule' ,[AdminPostController::class,'schedulePost']);
     Route::get('admin/posts/{id}/' ,[AdminPostController::class,'show']);
     Route::get('/admin/posts', [AdminPostController::class, 'index']);
-    Route::post('/{id}/publish', [AdminPostController::class, 'publish']);
-    Route::patch('/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
+    Route::post('/posts/{id}/publish', [AdminPostController::class, 'publish']);
+    Route::patch('/posts/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
+    Route::get('/categories', [AdminPostController::class, 'categories']);
+    Route::delete('/posts/{id}', [AdminPostController::class, 'destroy']);
+    Route::post('/posts/{id}/archive', [AdminPostController::class, 'archive']);
+    
+
     
 });
 

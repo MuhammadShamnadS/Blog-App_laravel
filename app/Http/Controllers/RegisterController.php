@@ -36,4 +36,9 @@ class RegisterController extends Controller
             'user'    => $user
         ], 201);
     }
+        public function Users()
+    {
+        $users = User::where('role', '!=', 'admin')->get();
+        return response()->json($users);
+    }
 }

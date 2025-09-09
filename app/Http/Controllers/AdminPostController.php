@@ -169,7 +169,7 @@ public function publish($id)
 {
     $post = Post::findOrFail($id);
 
-    if (!in_array($post->status, ['editor_approved', 'scheduled'])) {
+    if (!in_array($post->status, ['editor_approved', 'scheduled', 'archived'])) {
         return response()->json(['message' => 'Only approved or scheduled posts can be published.'], 400);
     }
 
@@ -183,7 +183,51 @@ public function publish($id)
     ]);
 }
 
+public function destroy($id)
+{
+    $post = Post::findOrFail($id);
+    $post->delete();
+
+    return response()->json(['message' => 'Post deleted successfully.']);
+}
 
 
+// Archive a post
+public function archive($id)
+{
+    $post = Post::findOrFail($id);
+
+    // Only allow published posts to be archived
+    if ($post->status !== 'published') {
+        return response()->json(['message' => 'Only published posts can be archived.'], 400);
+    }
+
+    $post->status = 'archived';
+    $post->save();
+
+    return response()->json(['message' => 'Post archived successfully.', 'post' => $post]);
+}
+
+// Unarchive a post
+public function unarchive($id)
+{
+    $post = Post::findOrFail($id);
+
+    // Only allow archived posts to be unarchived
+    if ($post->status !== 'archived') {
+        return response()->json(['message' => 'Only archived posts can be unarchived.'], 400);
+    }
+
+    $post->status = 'published'; 
+    $post->save();
+
+    return response()->json(['message' => 'Post unarchived successfully.', 'post' => $post]);
+}
+
+public function category()
+{
+    $categories = Category::all();
+    return response()->json($categories);
+}
 
 }
