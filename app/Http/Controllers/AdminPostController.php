@@ -59,9 +59,9 @@ class AdminPostController extends Controller
 
         if ($review) {
             if ($review->status === 'rejected') {
-                // Resubmit case -> reset to pending
+                // Resubmit case 
                 $review->status = 'pending';
-                $review->feedback = null; // clear old feedback
+                $review->feedback = null;
                 $review->save();
             } else {
                 return response()->json([

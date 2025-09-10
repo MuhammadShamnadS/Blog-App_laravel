@@ -6,12 +6,15 @@ use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\GuestPostController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ManualPasswordResetController;
 use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PostController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LikeController;
+use App\Http\Controllers\CommentController;
 
 
 Route::post('login', [AuthController::class, 'login']);
@@ -46,6 +49,8 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/categories', [AdminPostController::class, 'categories']);
     Route::delete('/posts/{id}', [AdminPostController::class, 'destroy']);
     Route::post('/posts/{id}/archive', [AdminPostController::class, 'archive']);
+    Route::get('guest/posts',[GuestPostController::class,'index']);
+    Route::get('guest/post/{id}',[GuestPostController::class,'singlePost']);
     
 
     
@@ -66,6 +71,11 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('categories',[PostController::class,'category']);
     Route::get('/tags',[PostController::class,'tags']);
     Route::delete('/media/{id}',[PostController::class,'deleteMedia']);
+    Route::post('/like/toggle', [LikeController::class, 'toggle']);
+    Route::post('/comments', [CommentController::class, 'store']);
+    Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
+    Route::delete('/comments/{commentId}', [CommentController::class, 'destroy']);
+    Route::get('post/{id}/likes',[LikeController::class,'postLike']);
     
 
 
