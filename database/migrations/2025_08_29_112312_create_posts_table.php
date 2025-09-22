@@ -20,6 +20,7 @@ return new class extends Migration
             $table->boolean('featured')->default(false);
             $table->timestamp('schedule_at')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -3,7 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
@@ -11,7 +13,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +32,8 @@ class User extends Authenticatable implements JWTSubject
         'otp',
     ];
 
+    protected $dates = ['deleted_at'];
+
 
 
     /**
@@ -41,6 +45,15 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
     ];
+    public function posts()
+{
+    return $this->hasMany(Post::class, 'author_id');
+}
+
+public function getDisplayNameAttribute()
+{
+    return $this->deleted_at ? 'Deleted User' : $this->name;
+}
 
     /**
      * Get the attributes that should be cast.
@@ -68,5 +81,20 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
+    public function followedAuthors()
+    {
+        return $this->belongsToMany(
+            User::class,'follows','guest_id', 'author_id'
+        );
+    }
+
+    // Authors have followers
+    public function followers()
+    {
+        return $this->belongsToMany(
+            User::class,'follows','author_id','guest_id'
+        );
+    }
 
 }
+

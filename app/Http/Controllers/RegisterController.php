@@ -2,43 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Services\RegisterUserService;
 
 class RegisterController extends Controller
 {
-    public function register(Request $request)
+  protected $registerUserService;
+
+    public function __construct(RegisterUserService $registerUserService)
     {
-        $validator = Validator::make($request->all(), [
-            'username'   => 'required|string|min:2|unique:users',
-            'name' => 'required|string|min:2',
-            'email'      => 'required|email|unique:users',
-            'password'   => 'required|string|min:6',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $user = User::create([
-            'username'   => $request->username,
-            'name' => $request->name,
-            'email'      => $request->email,
-            'password'   => Hash::make($request->password),
-            'role'       => 'guest',
-            
-        ]);
-
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user'    => $user
-        ], 201);
+        $this->registerUserService = $registerUserService;
     }
-        public function Users()
+    
+    //  register a user 
+    public function register(RegisterRequest $request)
     {
-        $users = User::where('role', '!=', 'admin')->get();
-        return response()->json($users);
+
+        return $this->registerUserService->registerUser($request->validated());
     }
+
 }

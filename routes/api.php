@@ -1,9 +1,14 @@
 <?php
 
+use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\EditorPostController;
 use App\Http\Controllers\AdminPostController;
 use App\Http\Controllers\AdminRoleController;
+use App\Http\Controllers\AdminStatsController;
+use App\Http\Controllers\AdminTagController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuthorFollowController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\GuestPostController;
@@ -11,75 +16,103 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\ManualPasswordResetController;
 use App\Http\Controllers\PasswordChangeController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\PostController;
+use App\Http\Controllers\AuthorPostController;
+use App\Http\Controllers\CategoryBulkImportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 
 
 Route::post('login', [AuthController::class, 'login']);
-Route::post('register',[RegisterController::class,'register']);
-Route::post('forget-password',[ManualPasswordResetController::class,'forgetpassword']);
-Route::post('verify-otp',[ManualPasswordResetController::class,'otpverification']);
-Route::post('reset-password',[ManualPasswordResetController::class,'resetPassword']);
+Route::post('register', [RegisterController::class, 'register']);
+Route::post('forget-password', [ManualPasswordResetController::class, 'forgetpassword']);
+Route::post('verify-otp', [ManualPasswordResetController::class, 'otpverification']);
+Route::post('reset-password', [ManualPasswordResetController::class, 'resetPassword']);
+Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.login');
 
 
 
 
 Route::middleware(['auth:api'])->group(function () {
-    Route::get('/users',[RegisterController::class,'users']);
+    Route::get('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('change-password', [PasswordChangeController::class, 'Changepassword']);
+    Route::get('/tags', [AuthorPostController::class, 'tags']);
+});
+
+#admin
+Route::middleware(['auth:api', 'role:admin'])->group(function () {
+    Route::get('/get-users',[AdminUserController::class,'fetchUser']);  
+        Route::delete('/delete-user/{id}',[AdminUserController::class,'userDelete']);  
+
+                  
+    Route::get('admin/dashboard-stats', [AdminStatsController::class, 'dashboardStats']);
     Route::post('/role-decision/{id}', [AdminRoleController::class, 'decision']);
-    Route::get('/pending-requests',[AdminRoleController::class,'viewrolerequest']);
-    Route::get('/requeststatus',[RoleController::class,'viewstatus']);
-
-
+    Route::get('/pending-requests', [AdminRoleController::class, 'viewrolerequest']);
+    Route::get('/role-requests-history', [AdminRoleController::class, 'viewRoleRequestsHistory']);
+    Route::get('/admin/published-posts', [AdminPostController::class, 'viewPublishedPost']);
+    Route::get('/admin/archieved-posts', [AdminPostController::class, 'viewArchievedPost']);
+    Route::get('/admin/featured-posts', [AdminPostController::class, 'viewFeaturedPost']);
+    Route::get('/admin/scheduled-posts', [AdminPostController::class, 'viewScheduledPost']);
+    Route::get('/categories', [AdminPostController::class, 'category']);
     Route::get('/admin/posts/submitted', [AdminPostController::class, 'submittedPosts']);
+    Route::get('/categories/{category}/editors', [AdminPostController::class, 'editors']);
     Route::post('/admin/posts/{post}/assign-editor', [AdminPostController::class, 'assignEditor']);
+    Route::get('admin/posts/{id}/', [AdminPostController::class, 'show']);
+    Route::post('/posts/{id}/publish', [AdminPostController::class, 'publish']);
+    Route::post('/posts/{id}/archive', [AdminPostController::class, 'archive']);
+    Route::delete('/delete-post/{id}', [AdminPostController::class, 'destroy']);
+    Route::post('posts/{id}/schedule', [AdminPostController::class, 'schedulePost']);
+    Route::patch('/posts/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
+    Route::get('posts/editor-approved', [AdminPostController::class, 'getEditorApprovedPosts']);
+    Route::post('add-categories', [AdminCategoryController::class, 'createCategory']);
+    Route::put('edit-category/{id}', [AdminCategoryController::class, 'editCategory']);
+    Route::delete('delete-category/{id}', [AdminCategoryController::class, 'deleteCategory']);
+    Route::post('/categories/{id}/tags', [AdminTagController::class, 'addTags']);
+    Route::get('/categories/{id}/tags', [AdminTagController::class, 'listTags']);
+    Route::put('tag/{id}', [AdminTagController::class, 'editTag']);
+    Route::delete('tag/{id}', [AdminTagController::class, 'deleteTag']);
+    Route::get('admin/posts/{id}/comments', [CommentController::class, 'index']);
+    Route::delete('admin/comments/{commentId}', [CommentController::class, 'destroy']);
+    Route::post('admin/import/category', [CategoryBulkImportController::class, 'importCsv']); 
+});
+
+#author 
+Route::middleware(['auth:api', 'role:author'])->group(function () {
+    Route::get('posts', [AuthorPostController::class, 'viewPost']);
+    Route::get('posts/{id}', [AuthorPostController::class, 'viewSinglePost']);
+    Route::delete('posts/{id}', [AuthorPostController::class, 'deleteSinglePost']);
+    Route::post('create-post', [AuthorPostController::class, 'createPost']);
+    Route::put('update-post/{id}', [AuthorPostController::class, 'editPost']);
+    Route::post('posts/{id}/resubmit', [AuthorPostController::class, 'resubmitPost']);
+    Route::delete('/media/{id}', [AuthorPostController::class, 'handleMediaDelete']);
+    Route::get('/available-categories', [AuthorPostController::class, 'category']);
+    Route::get('/categories/{id}/available-tags', [AuthorPostController::class, 'listTags']);
+});
+
+#editors
+Route::middleware(['auth:api', 'role:editor'])->group(function () {
     Route::get('/editor/posts', [EditorPostController::class, 'myAssignedPosts']);
     Route::post('/editor/reviews/{review}', [EditorPostController::class, 'reviewPost']);
     Route::get('/editor/reviews/{id}', [EditorPostController::class, 'viewReview']);
-    Route::get('/categories/{category}/editors', [AdminPostController::class, 'editors']);
-    Route::post('posts/{id}/resubmit' ,[PostController::class,'resubmitPost']);
-    Route::get('posts/editor-approved' ,[AdminPostController::class,'getEditorApprovedPosts']);
-    Route::post('posts/{id}/schedule' ,[AdminPostController::class,'schedulePost']);
-    Route::get('admin/posts/{id}/' ,[AdminPostController::class,'show']);
-    Route::get('/admin/posts', [AdminPostController::class, 'index']);
-    Route::post('/posts/{id}/publish', [AdminPostController::class, 'publish']);
-    Route::patch('/posts/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
-    Route::get('/categories', [AdminPostController::class, 'categories']);
-    Route::delete('/posts/{id}', [AdminPostController::class, 'destroy']);
-    Route::post('/posts/{id}/archive', [AdminPostController::class, 'archive']);
-    Route::get('guest/posts',[GuestPostController::class,'index']);
-    Route::get('guest/post/{id}',[GuestPostController::class,'singlePost']);
-    
-
-    
 });
 
-
-
-
-
-Route::middleware(['auth:api'])->group(function () {
-    Route::get('me',[AuthController::class,'me']);
-    Route::post('logout', [AuthController::class, 'logout']);
-    Route::post('change-password',[PasswordChangeController::class,'Changepassword']);
+#guests
+Route::middleware(['auth:api', 'role:guest'])->group(function () {
+    Route::get('guest/posts', [GuestPostController::class, 'index']);
+    Route::get('/requeststatus', [RoleController::class, 'viewstatus']);
     Route::post('/role-request', [RoleController::class, 'requestrole']);
-
-
-    Route::apiResource('posts', PostController::class);
-    Route::get('categories',[PostController::class,'category']);
-    Route::get('/tags',[PostController::class,'tags']);
-    Route::delete('/media/{id}',[PostController::class,'deleteMedia']);
+    Route::get('guest/post/{id}', [GuestPostController::class, 'singlePost']);
+    Route::get('post/{id}/likes', [LikeController::class, 'postLike']);
     Route::post('/like/toggle', [LikeController::class, 'toggle']);
-    Route::post('/comments', [CommentController::class, 'store']);
     Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
+    Route::post('/comments', [CommentController::class, 'store']);
     Route::delete('/comments/{commentId}', [CommentController::class, 'destroy']);
-    Route::get('post/{id}/likes',[LikeController::class,'postLike']);
+    Route::get('/authors', [AuthorFollowController::class, 'authors']);
+    Route::post('author/follow', [AuthorFollowController::class, 'followToggle']);
+    Route::get('/authors/{id}/profile', [AuthorFollowController::class, 'authorProfile']);
+    Route::get('/authors/{id}/follow-toggle', [AuthorFollowController::class, 'singleAuthorFollow']);
+    Route::get('/guests/followed-authors', [AuthorFollowController::class, 'getFollowList']);
     
-
-
 });
-
-Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
-Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.login');

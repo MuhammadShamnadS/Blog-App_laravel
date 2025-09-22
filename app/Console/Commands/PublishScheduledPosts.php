@@ -9,22 +9,40 @@ use Carbon\Carbon;
 class PublishScheduledPosts extends Command
 {
     protected $signature = 'posts:publish-scheduled';
-    protected $description = 'Publish scheduled posts when the scheduled time arrives';
+    protected $description = 'Publish scheduled posts, auto-publish approved posts, and archive old posts';
 
     public function handle()
     {
         $now = Carbon::now();
+        $startOfHour = $now->copy()->startOfHour();
+        $endOfHour   = $now->copy()->endOfHour();
 
-        $posts = Post::where('status', 'scheduled')
-            ->where('schedule_at', '<=', $now)
-            ->get();
+        Post::where('status', 'scheduled')
+            ->whereBetween('schedule_at', [$startOfHour, $endOfHour])
+            ->update([
+                'status' => 'published',
+                'schedule_at' => null,
+            ]);
 
-        foreach ($posts as $post) {
-            $post->status = 'published';
-            $post->schedule_at = null;  
-            $post->save();
+
+        $hour = $now->hour;
+        if ($hour >= 1 && $hour <= 4) {
+            Post::where('status', 'editor_approved')
+                ->whereNull('schedule_at')
+                ->update([
+                    'status' => 'published',
+                ]);
         }
 
-        $this->info('Scheduled posts published successfully.');
+
+        $today = $now->subDays(30);
+        Post::where('created_at', '<=', $today)
+            ->where('status', 'published')
+            ->update([
+                'status' => 'archived',
+                'schedule_at' => null,
+            ]);
+
+        $this->info('Posts processed successfully.');
     }
 }
