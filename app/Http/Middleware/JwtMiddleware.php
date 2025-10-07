@@ -6,6 +6,7 @@ use Closure;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class JwtMiddleware
 {

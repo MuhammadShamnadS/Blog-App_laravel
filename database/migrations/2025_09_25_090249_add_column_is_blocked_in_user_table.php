@@ -12,16 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_manual')->default('0');
-            $table->integer('otp')->nullable();
+            $table->boolean('is_blocked')->default(false);
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('is_manual');
+        Schema::table('user', function (Blueprint $table) {
+            //
         });
     }
-
 };

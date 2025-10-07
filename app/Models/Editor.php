@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,5 +29,13 @@ class Editor extends Model
 
     public function reviews() {
         return $this->hasMany(EditorReview::class);
+    }
+    protected static function booted(): void
+    {
+        static::addGlobalScope('parentNotDeleted', function (Builder $builder) {
+            $builder->whereHas('user', function ($query) {
+                $query->whereNull('deleted_at');
+            });
+        });
     }
 }

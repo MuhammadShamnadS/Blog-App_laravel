@@ -1,67 +1,35 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use App\Models\RoleRequest;
-use App\Models\User;
-use App\Models\Editor;
+use App\Http\Requests\AdminRoleActionRequest;
+use App\Http\Services\AdminRoleActionService;
 
 class AdminRoleController extends Controller
 {
-    public function decision(Request $request, $id)
+
+    protected $adminRoleAction;
+
+    public function __construct(AdminRoleActionService $adminRoleAction)
     {
-        $roleRequest = RoleRequest::findOrFail($id);
-
-        if ($roleRequest->status !== 'pending') {
-            return response()->json(['message' => 'Request already processed'], 422);
-        }
-
-    // base rules
-    $rules = [
-        'action' => 'required|in:approve,reject',
-    ];
-
-    // only if approving AND requested role is editor
-    if ($request->action === 'approve' && $roleRequest->requested_role === 'editor') {
-        $rules['category_id'] = 'required|exists:categories,id';
+        $this->adminRoleAction = $adminRoleAction;
+    }
+    //  take decision on role request from guest by admin
+    public function decision(AdminRoleActionRequest $request, $id)
+    {
+        return $this->adminRoleAction->roleDecision($request->validated(), $id);
     }
 
-    $validator = Validator::make($request->all(), $rules);
-
-    if ($validator->fails()) {
-        return response()->json($validator->errors(), 422);
-    }
-
-        if ($request->action === 'approve') {
-            $roleRequest->status = 'approved';
-            $roleRequest->save();
-
-            // Update user role
-            $roleRequest->user->update(['role' => $roleRequest->requested_role]);
-
-            // If editor → assign category
-            if ($roleRequest->requested_role === 'editor') {
-                Editor::updateOrCreate(
-                    ['user_id' => $roleRequest->user_id],
-                    ['category_id' => $request->category_id]
-                );
-            }
-
-            return response()->json(['message' => 'Role approved and updated']);
-        }
-
-        if ($request->action === 'reject') {
-            $roleRequest->status = 'rejected';
-            $roleRequest->save();
-
-            return response()->json(['message' => 'Role request rejected']);
-        }
-    }
-
+    //  list pending role request by admin
     public function viewrolerequest()
     {
-        $requests = RoleRequest::with('user')->get();
-        return response()->json($requests);
+        return $this->adminRoleAction->viewRoleRequests();
     }
+
+    // list history or role requests by admin
+        public function viewRoleRequestsHistory()
+    {
+        return $this->adminRoleAction->fetchRoleRequestHistory();
+    }
+    
 }

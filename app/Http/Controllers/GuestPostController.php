@@ -2,45 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Post;
-use App\Models\Like;
-use Illuminate\Http\Request;
+use App\Http\Services\GuestPostService;
 
 class GuestPostController extends Controller
 {
+    protected $guestPost;
+    public function __construct(GuestPostService $guestPost)
+    {
+        $this->guestPost = $guestPost;
+    }
+    
+    //  view post by guest
     public function index()
     {
-        if(auth()->user()->role !== "guest"){
-            return response()->json(['error'=> 'You are not a guest']);
-        }
-        $post = Post::with('media','author')->where('status', 'published')->get();
-        return response()->json($post);
+        return $this->guestPost->viewPost();
     }
 
-
-   public function singlePost($id)
+    //  view single post by guest
+    public function singlePost($id)
     {
-
-
- if (auth()->user()->role !== "guest") {
-return response()->json(['error' => 'You are not a guest'], 403);
-}
+        return $this->guestPost->viewSinglePost($id);
+    }
+    public function getCategories()
+    {
+        return $this->guestPost->fetchCategories();
+    }
+        public function getTags($id)
+    {
+        return $this->guestPost->fetchTags($id);
+    }
     
-    $is_liked = Like::where('post_id', $id)
-                    ->where('user_id', auth()->id())
-                    ->exists();
-
-        $post = Post::with(['category','tags', 'media', 'author'])->findOrFail($id);
-        if($post->status != "published") return;
-                if(!$post){
-            return response()->json(['error' => 'This post is unavailable'], 404);
-        }
-        
-        return response()->json([$post,'is_liked' => $is_liked]);
-    }
-
-    public function like(Request $request)
-    {
-
-    }
 }

@@ -12,8 +12,12 @@ class Category extends Model
     {
         return $this->hasMany(Post::class);
     }
-        public function editors()
+    public function editors()
     {
         return $this->hasMany(Editor::class);
+    }
+    public function tags()
+    {
+        return $this->hasMany(Tag::class);
     }
 }

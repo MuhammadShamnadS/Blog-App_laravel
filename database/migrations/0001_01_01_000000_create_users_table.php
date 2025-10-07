@@ -21,6 +21,9 @@ return new class extends Migration
             $table->string('provider')->nullable(); 
             $table->string('provider_id')->nullable();
             $table->enum('role', ['admin', 'author', 'editor', 'guest'])->default('guest');
+            $table->boolean('is_manual')->default('0');
+            $table->integer('otp')->nullable();
+            $table->softDeletes();
             $table->rememberToken();
             $table->timestamps();
         });
