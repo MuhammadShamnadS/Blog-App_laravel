@@ -17,13 +17,15 @@ return [
     'paths' => [
         'api/*',
         'sanctum/csrf-cookie',
-        'broadcasting/auth', // 👈 allow this
+
+        'broadcasting/auth',
     ],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:5173', // 👈 Vite dev
+        'http://localhost:5173',
+
     ],
 
     'allowed_origins_patterns' => [],

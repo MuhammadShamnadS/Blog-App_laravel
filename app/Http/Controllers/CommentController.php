@@ -32,4 +32,15 @@ class CommentController extends Controller
     {
         return $this->comment->deleteComment($commentId);
     }
+
+    public function reportSpam($id)
+    {
+        return $this->comment->reportComment($id);
+    }
+        public function listSpam($id)
+    {
+        return $this->comment->listSpamComments($id);
+    }
+
+    
 }

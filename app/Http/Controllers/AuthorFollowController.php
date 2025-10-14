@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\FollowToggleRequest;
+use App\Http\Requests\SubscribeAuthorsRequest;
 use App\Http\Services\GuestFollowAuthorService;
-
 
 class AuthorFollowController extends Controller
 {
@@ -38,5 +38,9 @@ class AuthorFollowController extends Controller
     public function getFollowList()
     {
         return $this->guestFollowAuthor->followedAuthors();
+    }
+    public function subscribeToggle(SubscribeAuthorsRequest $request)
+    {
+        return $this->guestFollowAuthor->subscribe($request->validated());
     }
 }

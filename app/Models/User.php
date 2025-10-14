@@ -8,12 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+
+    use HasFactory, Notifiable, SoftDeletes,HasPushSubscriptions;
 
     /**
      * The attributes that are mass assignable.
@@ -49,6 +51,12 @@ class User extends Authenticatable implements JWTSubject
 {
     return $this->hasMany(Post::class, 'author_id');
 }
+
+
+    public function reportedComments()
+    {
+        return $this->belongsToMany(Comment::class, 'comment_reports');
+    }
 
 public function getDisplayNameAttribute()
 {
@@ -95,6 +103,7 @@ public function getDisplayNameAttribute()
             User::class,'follows','author_id','guest_id'
         );
     }
+
 
 }
 

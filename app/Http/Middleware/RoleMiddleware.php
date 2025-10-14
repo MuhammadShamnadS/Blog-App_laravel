@@ -24,6 +24,11 @@ class RoleMiddleware
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
+        if($user->is_blocked != 0)
+        {
+            return response()->json(['error' => 'User not found'],404);
+        }
+        
         if (!in_array($user->role, $roles)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }

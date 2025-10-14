@@ -12,7 +12,8 @@ class AdminDashboardStatsService
     public function showStats()
     {
         $usersCount = User::where('role', '!=', 'admin')->get()->count();
-        $posts = Post::orderBy('created_at', 'desc')->take(5)->get();
+
+        $posts = Post::withoutGlobalScope('parentNotDeleted')->orderBy('created_at', 'desc')->take(5)->get();
         $categoriesCount = Category::count();
 
         return response()->json([

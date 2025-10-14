@@ -9,15 +9,18 @@ use App\Models\Follow;
 use App\Models\Post;
 use App\Models\User;
 use App\Notifications\AuthorPublishedPost;
+use App\Notifications\SubscribedPostNotification;
 
 class AdminPostService
 {
     // view author submitted posts by admin
     public function viewSubmittedPost()
     {
-        $posts = Post::with(['author', 'category'])
+        $posts = Post::withoutGlobalScope('parentNotDeleted')->with(['author', 'category'])
             ->where('status', 'submitted')
-            ->get();
+            ->paginate(5);
+
+
 
         return response()->json($posts);
     }
@@ -31,7 +34,7 @@ class AdminPostService
                 'id'   => $categoryId,
                 'name' => $category->name,
             ],
-            'editors' => $category->editors()->with('user')->get(),
+            'editors' => $category->editors()->with('user')->paginate(5),
         ]);
     }
 
@@ -39,6 +42,9 @@ class AdminPostService
     public function handleAssignEditor($postId, $validatedData)
     {
         $post = Post::findOrFail($postId);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findOrFail($postId);
+
         if ($post->status !== 'submitted') {
             return response()->json([
                 'error' => 'Only submitted posts can be assigned to editors'
@@ -84,7 +90,8 @@ class AdminPostService
     //  list editor approved posts by admin
     public function listEditorApprovedPosts()
     {
-        $posts = Post::where('status', 'editor_approved')
+        $posts = Post::withoutGlobalScope('parentNotDeleted')->where('status', 'editor_approved')
+
             ->with(['author', 'category', 'tags', 'media', 'editorReview'])
             ->get();
 
@@ -98,13 +105,21 @@ class AdminPostService
             ->with(['author', 'category', 'tags', 'media', 'editorReview'])
             ->get();
 
+        $posts = Post::withoutGlobalScope('parentNotDeleted')->where('status', 'editor_approved')
+            ->with(['author', 'category', 'tags', 'media', 'editorReview'])
+            ->paginate(5);
+
         return response()->json($posts);
     }
 
     // schedule a post by admin
     public function handleSchedule($id, $validatedData)
     {
+
         $post = Post::findorFail($id);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
+
         if ($post->status !== 'editor_approved' && $post->status !== 'scheduled') {
             return response()->json(['message' => 'Only editor-approved posts can be scheduled.'], 400);
         }
@@ -122,13 +137,17 @@ class AdminPostService
     public function showSinglePost($id)
     {
         $post = Post::with(['category', 'tags', 'media', 'author', 'editorReview'])->findorFail($id);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->with(['category', 'tags', 'media', 'author', 'editorReview'])->findorFail($id);
+
         return response()->json($post);
     }
 
     // view published posts by admin
     public function listPublishedPost()
     {
-        $post = Post::with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'published')->get();
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->where('status', 'published')->with(['category', 'tags', 'media', 'author', 'editorReview'])->paginate(5);
 
         return response()->json($post);
     }
@@ -136,15 +155,16 @@ class AdminPostService
     // view scheduled posts by admin
     public function listScheduledPost()
     {
-        $post = Post::with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'scheduled')->get();
 
+        $post = Post::withoutGlobalScope('parentNotDeleted')->with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'scheduled')->paginate(5);
         return response()->json($post);
     }
 
     //  view archieved post by admin
     public function listArchievedPost()
     {
-        $post = Post::with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'archived')->get();
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'archived')->paginate(5);
 
         return response()->json($post);
     }
@@ -152,7 +172,8 @@ class AdminPostService
     //  view featured posts by admin
     public function listFeaturedPosts()
     {
-        $post = Post::with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'published')->where('featured', '1')->get();
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->with(['category', 'tags', 'media', 'author', 'editorReview'])->where('status', 'published')->where('featured', '1')->paginate(5);
 
         return response()->json($post);
     }
@@ -160,7 +181,9 @@ class AdminPostService
     //  feature/unfeature a post by admin
     public function featurePost($id, $validatedData)
     {
-        $post = Post::findORFail($id);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
+
 
         if (!in_array($post->status, ['published'])) {
             return response()->json([
@@ -180,7 +203,8 @@ class AdminPostService
     //  publish/unpublish a post by admin
     public function handlePublish($id)
     {
-        $post = Post::findorFail($id);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
 
         if (!in_array($post->status, ['editor_approved', 'scheduled', 'archived'])) {
             return response()->json(['message' => 'Only approved or scheduled posts can be published.'], 400);
@@ -189,17 +213,20 @@ class AdminPostService
         $post->status = 'published';
         $post->schedule_at = null;
         $post->save();
-        // notify all followers of the author
-$followers = Follow::where('author_id', $post->author_id)->get();
 
-foreach ($followers as $follower) {
-    $guest = User::find($follower->guest_id); // adjust model if your guest is another entity
-    if ($guest) {
-        $guest->notify(new AuthorPublishedPost($post->author, $post));
-    }
-}
+        $followers = Follow::where('author_id', $post->author_id)->get();
 
-
+        foreach ($followers as $follower) {
+            $guest = User::find($follower->guest_id);
+            if ($guest->role != "guest") {
+                continue;
+            }
+            if ($follower->subscribed == 1) {
+                $guest->notify(new SubscribedPostNotification($post->author, $post));
+            } else {
+                $guest->notify(new AuthorPublishedPost($post->author, $post));
+            }
+        }
         return response()->json([
             'message' => 'Post published successfully.',
             'post' => $post
@@ -209,7 +236,7 @@ foreach ($followers as $follower) {
     //  delete a post by admin
     public function handleDelete($id)
     {
-        $post = Post::findorFail($id);
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
 
         $post->delete();
 
@@ -219,14 +246,14 @@ foreach ($followers as $follower) {
     // archieve a post by admin
     public function handleArchieve($id)
     {
-        $post = Post::findorFail($id);
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
 
         if ($post->status !== 'published') {
             return response()->json(['message' => 'Only published posts can be archived.'], 400);
         }
 
         $post->status = 'archived';
-        $post->featured = '0';
+        $post->featured = 0 ;
         $post->save();
 
         return response()->json(['message' => 'Post archived successfully.', 'post' => $post]);
@@ -235,7 +262,8 @@ foreach ($followers as $follower) {
     //  unarchieve a post by admin
     public function handleUnarchieve($id)
     {
-        $post = Post::findorFail($id);
+
+        $post = Post::withoutGlobalScope('parentNotDeleted')->findorFail($id);
 
         if ($post->status !== 'archived') {
             return response()->json(['message' => 'Only archived posts can be unarchived.'], 400);
@@ -250,7 +278,8 @@ foreach ($followers as $follower) {
     //  list categories by admin
     public function fetchCategories()
     {
-        $categories = Category::all();
+
+        $categories = Category::paginate(5);
         return response()->json($categories);
     }
 }

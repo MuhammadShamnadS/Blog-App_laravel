@@ -23,4 +23,13 @@ class GuestPostController extends Controller
     {
         return $this->guestPost->viewSinglePost($id);
     }
+    public function getCategories()
+    {
+        return $this->guestPost->fetchCategories();
+    }
+        public function getTags($id)
+    {
+        return $this->guestPost->fetchTags($id);
+    }
+ 
 }

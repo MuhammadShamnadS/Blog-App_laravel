@@ -17,14 +17,6 @@ public function addTags($validatedData, $id)
 
     $category = Category::findOrFail($id);
 
-    $existingTag = Tag::where('category_id', $id)
-        ->where('name', $validatedData['name'])
-        ->first();
-
-    if ($existingTag) {
-        return response()->json(['error' => 'Tag already exists for this category'], 422);
-    }
-
     $tag = Tag::create([
         'name' => $validatedData['name'],
         'category_id' => $category->id,
@@ -47,15 +39,6 @@ public function fetchTags($id)
         }
 
         $tag = Tag::findOrFail($id);
-
-        $existingTag = Tag::where('category_id', $tag->category_id)
-            ->where('name', $validatedData['name'])
-            ->where('id', '!=', $id)
-            ->first();
-
-        if ($existingTag) {
-            return response()->json(['error' => 'Tag already exists for this category'], 422);
-        }
 
         $tag->name = $validatedData['name'];
         $tag->save();

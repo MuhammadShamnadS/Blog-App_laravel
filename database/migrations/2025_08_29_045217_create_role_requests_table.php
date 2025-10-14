@@ -9,16 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-public function up(): void
-{
-    Schema::create('role_requests', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('user_id')->constrained()->onDelete('cascade');
-        $table->enum('requested_role', ['author', 'editor']);
-        $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
-        $table->timestamps();
-    });
-}
+    public function up(): void
+    {
+        Schema::create('role_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->enum('requested_role', ['author', 'editor']);
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

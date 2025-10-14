@@ -11,22 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('media', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('post_id')->constrained('posts')->onDelete('cascade');
-            $table->string('url');
-            $table->enum('type', ['image', 'video', 'audio', 'file'])->default('image');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('is_blocked')->default(false);
         });
     }
-
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('media', function (Blueprint $table) {
+        Schema::table('user', function (Blueprint $table) {
             //
         });
     }

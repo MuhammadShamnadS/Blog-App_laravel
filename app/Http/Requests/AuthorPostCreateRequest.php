@@ -13,8 +13,7 @@ class AuthorPostCreateRequest extends FormRequest
             'title'       => 'required|string|min:2|max:255',
             'content'     => 'required|string|min:2',
             'category'    => 'required|string|exists:categories,name',
-            'tags'        => 'required|array',
-            'tags.*'      => 'string|exists:tags,name',
+            'tags'        => 'required|array|exists:tags,name',
             'media.*'     => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mp3,pdf,docx|max:20480',
         ];
     }
@@ -34,8 +33,7 @@ class AuthorPostCreateRequest extends FormRequest
             'category.exists'       => 'The selected category is invalid.',
             'tags.array'     => 'Tags must be provided as a list.',
             'tags.required'     => 'Tags must be provided.',
-            'tags.*.string'  => 'Each tag must be valid text.',
-            'tags.exists'       => 'The selected tag is invalid.',
+            'tags.exists' => 'Tag is invalid',
             'media.*.file'    => 'Each media item must be a valid file.',
             'media.*.mimes'   => 'Allowed media formats are: jpg, jpeg, png, gif, mp4, mp3, pdf, docx.',
             'media.*.max'     => 'Each media file may not be larger than 20MB.',

@@ -56,7 +56,44 @@ class GuestFollowAuthorService
         Follow::create([
             'guest_id'  => $user->id,
             'author_id' => $validatedData['author_id'],
+
+            'subscribed' => '0',
+
         ]);
+
+        return response()->json(['success' => true, 'action' => 'followed'], 200);
+    }
+
+    public function subscribe($validatedData)
+    {
+        $user = auth()->user();
+
+        if ($user->role != "guest") {
+            return response()->json(['error' => 'You are not a guest'], 403);
+        }
+        $author = User::findorfail($validatedData['author_id']);
+        if ($author->role != 'author') {
+            return response()->json(['error' => 'Invalid author'], 400);
+        }
+
+        $follow = Follow::where('author_id', $validatedData['author_id'])
+            ->where('guest_id', $user->id)
+            ->first();
+
+        if (!$follow) {
+            return response()->json(['error' => 'You must follow the author first'], 400);
+        }
+        if ($follow->subscribed == 1) {
+            $follow->subscribed = 0;
+            $follow->save();
+            return response()->json(['success' => true, 'action' => 'unsubscribed'], 200);
+        } else {
+            $follow->subscribed = 1;
+            $follow->save();
+            return response()->json(['success' => true, 'action' => 'subscribed'], 200);
+        }
+
+
 
         return response()->json(['success' => true, 'action' => 'followed'], 200);
     }
@@ -68,12 +105,18 @@ class GuestFollowAuthorService
         if ($author->role != "author") {
             return response()->json(["error" => "Not a valid author"], 400);
         }
+
 $profile = User::with([
     'posts' => function ($query) {
         $query->where('status', 'published')->with('media');
     }
 ])->find($id);
 
+        $profile = User::with([
+            'posts' => function ($query) {
+                $query->where('status', 'published')->with('media');
+            }
+        ])->find($id);
 
         return response()->json($profile);
     }
@@ -111,5 +154,9 @@ $profile = User::with([
 
          $authors = $user->followedAuthors()->select('users.id', 'users.name')->get();
         return response()->json($authors);
+        return response()->json([
+            'is_followed'   => $follow ? true : false,
+            'is_subscribed' => $follow ? (bool) $follow->subscribed : false,
+        ]);
     }
 }

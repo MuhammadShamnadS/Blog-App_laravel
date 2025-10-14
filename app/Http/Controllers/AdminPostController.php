@@ -88,7 +88,7 @@ class AdminPostController extends Controller
     public function publish($id)
     {
         return $this->adminPost->handlePublish($id);
-        
+
     }
 
     //  delete a post by admin

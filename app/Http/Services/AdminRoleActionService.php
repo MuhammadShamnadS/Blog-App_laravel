@@ -49,14 +49,14 @@ class AdminRoleActionService
     // list pending role requests by admin
     public function viewRoleRequests()
     {
-        $requests = RoleRequest::with('user')->where('status', 'pending')->get();
+        $requests = RoleRequest::with('user')->where('status', 'pending')->paginate(5);
         return response()->json($requests);
     }
 
     // list role request histories by admin
     public function fetchRoleRequestHistory()
     {
-        $requests = RoleRequest::with('user')->where('status', ['approved', 'rejected'])->get();
+        $requests = RoleRequest::with('user')->whereIn('status', ['approved', 'rejected'])->paginate(5);
         return response()->json($requests);
     }
 }

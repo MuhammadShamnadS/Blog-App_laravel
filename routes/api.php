@@ -6,10 +6,10 @@ use App\Http\Controllers\AdminPostController;
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\AdminTagController;
+use App\Http\Controllers\AdminUserBlockController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuthorFollowController;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\GuestPostController;
 use App\Http\Controllers\RegisterController;
@@ -21,6 +21,8 @@ use App\Http\Controllers\CategoryBulkImportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SearchAndFilterController;
+use Illuminate\Http\Request;
 
 
 Route::post('login', [AuthController::class, 'login']);
@@ -31,10 +33,18 @@ Route::post('reset-password', [ManualPasswordResetController::class, 'resetPassw
 Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.login');
 
+Route::middleware('auth:api')->post('/webpush/subscribe', function (Request $request) {
+    $request->user()->updatePushSubscription(
+        $request->input('endpoint'),
+        $request->input('keys.p256dh'),
+        $request->input('keys.auth')
+    );
+
+    return response()->json(['success' => true]);
+});
 
 
-
-Route::middleware(['auth:api'])->group(function () {
+Route::middleware(['auth:api', 'role:admin,guest,author,editor'])->group(function () {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('change-password', [PasswordChangeController::class, 'Changepassword']);
@@ -44,9 +54,9 @@ Route::middleware(['auth:api'])->group(function () {
 #admin
 Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('/get-users',[AdminUserController::class,'fetchUser']);  
-        Route::delete('/delete-user/{id}',[AdminUserController::class,'userDelete']);  
-
-                  
+    Route::delete('/delete-user/{id}',[AdminUserController::class,'userDelete']);  
+    Route::post("block-user/{id}", [AdminUserBlockController::class, 'blockUser']);
+    Route::post("unblock-user/{id}", [AdminUserBlockController::class, 'unblockUser']);
     Route::get('admin/dashboard-stats', [AdminStatsController::class, 'dashboardStats']);
     Route::post('/role-decision/{id}', [AdminRoleController::class, 'decision']);
     Route::get('/pending-requests', [AdminRoleController::class, 'viewrolerequest']);
@@ -62,6 +72,7 @@ Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('admin/posts/{id}/', [AdminPostController::class, 'show']);
     Route::post('/posts/{id}/publish', [AdminPostController::class, 'publish']);
     Route::post('/posts/{id}/archive', [AdminPostController::class, 'archive']);
+    Route::post('/posts/{id}/un-archive', [AdminPostController::class, 'unarchive']);
     Route::delete('/delete-post/{id}', [AdminPostController::class, 'destroy']);
     Route::post('posts/{id}/schedule', [AdminPostController::class, 'schedulePost']);
     Route::patch('/posts/{id}/feature', [AdminPostController::class, 'toggleFeatured']);
@@ -76,6 +87,9 @@ Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('admin/posts/{id}/comments', [CommentController::class, 'index']);
     Route::delete('admin/comments/{commentId}', [CommentController::class, 'destroy']);
     Route::post('admin/import/category', [CategoryBulkImportController::class, 'importCsv']); 
+    Route::get('admin/posts/{id}/spam-comments', [CommentController::class, 'listSpam']);
+
+
 });
 
 #author 
@@ -109,10 +123,17 @@ Route::middleware(['auth:api', 'role:guest'])->group(function () {
     Route::get('/posts/{postId}/comments', [CommentController::class, 'index']);
     Route::post('/comments', [CommentController::class, 'store']);
     Route::delete('/comments/{commentId}', [CommentController::class, 'destroy']);
+    Route::post('/comments/{commentId}', [CommentController::class, 'reportSpam']);
     Route::get('/authors', [AuthorFollowController::class, 'authors']);
     Route::post('author/follow', [AuthorFollowController::class, 'followToggle']);
     Route::get('/authors/{id}/profile', [AuthorFollowController::class, 'authorProfile']);
     Route::get('/authors/{id}/follow-toggle', [AuthorFollowController::class, 'singleAuthorFollow']);
     Route::get('/guests/followed-authors', [AuthorFollowController::class, 'getFollowList']);
-    
+    Route::post('/author/subscribe', [AuthorFollowController::class, 'subscribeToggle']);
+    Route::get('/search', [SearchAndFilterController::class, 'searchFilter']);
+    Route::get('/filter', [SearchAndFilterController::class, 'nameFilter']);
+    Route::get('/get-available-categories', [GuestPostController::class, 'getCategories']);
+    Route::get('category/{id}/available-tags', [GuestPostController::class, 'getTags']);
+    Route::get('guest/posts/{id}/spam-comments', [CommentController::class, 'listSpam']);
+
 });

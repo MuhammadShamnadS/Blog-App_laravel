@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AdminCategoryRequest extends FormRequest
 {
@@ -17,20 +18,28 @@ class AdminCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
+        $categoryId = $this->route('id');
         return [
-            'name' => 'required|string|min:2|max:20',
+
+            'name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:20',
+                Rule::unique('categories')->ignore($categoryId),
+            ],
 
         ];
     }
 
     public function messages()
-{
-    return [
-        'name.required' => 'Name is required.',
-        'name.string'   => 'Name must be a valid string.',
-        'name.min'      => 'Name must be at least 2 characters long.',
-        'name.max'      => 'Name must not exceed 20 characters.',
-    ];
-}
-
+    {
+        return [
+            'name.required' => 'Category name is required.',
+            'name.string'   => 'Category name must be a valid string.',
+            'name.min'      => 'Category name must be at least 2 characters long.',
+            'name.max'      => 'Category name must not exceed 20 characters.',
+            'name.unique'   => 'Category already exists'
+        ];
+    }
 }

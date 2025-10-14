@@ -12,9 +12,9 @@ class AdminUserController extends Controller
     {
         $this->users = $users;
     }
-    public function fetchUser()
+    public function fetchUser(Request $request)
     {
-        return $this->users->listUsers();
+        return $this->users->getUsers($request);
     }
 
 public function userDelete($id)

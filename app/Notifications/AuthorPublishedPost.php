@@ -29,7 +29,8 @@ class AuthorPublishedPost extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+
+        return ['broadcast'];
     }
 
     /**
@@ -37,15 +38,17 @@ class AuthorPublishedPost extends Notification implements ShouldQueue
      */
 
 
-        public function toDatabase($notifiable)
-    {
-        return [
-            'author_id'   => $this->author->id,
-            'author_name' => $this->author->name,
-            'post_id'     => $this->post->id,
-            'post_title'  => $this->post->title,
-        ];
-    }
+
+    //     public function toDatabase($notifiable)
+    // {
+    //     return [
+    //         'author_id'   => $this->author->id,
+    //         'author_name' => $this->author->name,
+    //         'post_id'     => $this->post->id,
+    //         'post_title'  => $this->post->title,
+    //     ];
+    // }
+
     // public function toMail(object $notifiable): MailMessage
     // {
     //     return (new MailMessage)

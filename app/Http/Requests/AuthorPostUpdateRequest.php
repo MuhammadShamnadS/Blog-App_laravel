@@ -10,8 +10,8 @@ class AuthorPostUpdateRequest extends FormRequest
     public function rules()
     {
         return [
-            'title'    => 'sometimes|required|string|max:255',
-            'content'  => 'sometimes|required|string',
+            'title'    => 'sometimes|required|string|min:2|max:255',
+            'content'  => 'sometimes|required|min:2|string',
             'category' => 'sometimes|required|string|exists:categories,name',
             'tags'     => 'nullable|array',
             'tags.*'   => 'string|max:50',
@@ -26,8 +26,10 @@ class AuthorPostUpdateRequest extends FormRequest
         return [
             'title.sometimes' => 'Please provide a title for your post.',
             'title.string'   => 'The title must be valid text.',
+            'title.min'      => 'The title must be atleast 2 characters long.',
             'title.max'      => 'The title cannot exceed 255 characters.',
             'content.sometimes' => 'Content is required.',
+            'content.min' => 'Content must be minimum of 2 characters.',
             'content.string'   => 'The content must be valid text.',
             'category.sometimes' => 'Please select a category.',
             'category.string'   => 'Category must be valid text.',
